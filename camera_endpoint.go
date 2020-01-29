@@ -1,15 +1,15 @@
 package camserver
 
 import (
-	"camserver/params"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"v4l2"
-	"webcam"
 
 	"github.com/gorilla/mux"
+	"github.com/jalasoft/go-v4l2"
+	"github.com/jalasoft/go-webcam"
+	"github.com/jalasoft/go-webcam-server/params"
 )
 
 type supported_resolution struct {

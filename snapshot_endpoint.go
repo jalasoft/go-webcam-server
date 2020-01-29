@@ -8,9 +8,9 @@ import (
 	"math"
 	"net/http"
 	"strconv"
-	"webcam"
 
 	"github.com/gorilla/mux"
+	"github.com/jalasoft/go-webcam"
 )
 
 type snapshot struct {

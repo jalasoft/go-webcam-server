@@ -1,14 +1,16 @@
 package camserver
 
 import (
-	"camserver/params"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 	"sync"
-	"webcam"
+
+	"github.com/jalasoft/go-webcam"
+
+	"github.com/jalasoft/go-webcam-server/params"
 )
 
 type camera_info struct {

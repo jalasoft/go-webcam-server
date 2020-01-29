@@ -1,13 +1,13 @@
 package camserver
 
 import (
-	"camserver/params"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/gorilla/mux"
+	"github.com/jalasoft/go-webcam-server/params"
 )
 
 type cameraInfo struct {
