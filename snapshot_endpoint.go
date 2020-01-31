@@ -77,18 +77,6 @@ func snapshotHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.Write(b)
 }
 
-func logAndWriteResponse(m string, err error, writer http.ResponseWriter) {
-	var message string
-	if err != nil {
-		message = fmt.Sprintf("%v: %v\n", m, err)
-	} else {
-		message = m
-	}
-
-	log.Printf(message)
-	writer.Write([]byte(message))
-}
-
 //-------------------------------------------------------------------------------
 //RESOLVING FRAME SIZE
 //-------------------------------------------------------------------------------
