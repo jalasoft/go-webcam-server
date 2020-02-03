@@ -29,9 +29,11 @@ func StartServer() {
 		os.Exit(1)
 	}
 
+	io
 	parameters = par
 
 	log.Printf("starting server on port %d", parameters.Port)
+	log.Printf("Startujuuuuuuuu")
 
 	router := mux.NewRouter()
 
@@ -39,6 +41,7 @@ func StartServer() {
 	router.HandleFunc("/camera/", allCamerasHandler)
 	router.HandleFunc("/camera/{name}", cameraHandler)
 	//router.HandleFunc("/camera/{name}/snapshot", snapshotHandler)
+
 	router.HandleFunc("/camera/{name}/stream/web", streamWebHandler)
 
 	server := &http.Server{
