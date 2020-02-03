@@ -29,7 +29,6 @@ func StartServer() {
 		os.Exit(1)
 	}
 
-	io
 	parameters = par
 
 	log.Printf("starting server on port %d", parameters.Port)
