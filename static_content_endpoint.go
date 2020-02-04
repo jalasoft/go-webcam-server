@@ -1,22 +1,56 @@
-package camserver
+package webcamserver
 
 import (
 	"log"
 	"net/http"
+	. "strings"
 )
 
-func streamWebHandler(writer http.ResponseWriter, request *http.Request) {
+func streamWebIndexHandler(writer http.ResponseWriter, request *http.Request) {
 
-	log.Printf("Prisel request....")
-	/*
-		ass, err := Asset("index.html")
+	camera := extractVariable("name", request)
+	//path := request.URL.Path
 
-		if err != nil {
-			logAndWriteResponse("Canot find index.html", err, writer)
-			return
-		}
+	//resourceName := path[LastIndex(path, "/"):]
 
-		log.Printf("index.html loaded")
-		writer.Write(ass)*/
-	writer.Write([]byte("Ahojky...."))
+	//	log.Printf("Requests for static resource '%s' has arrived.", resourceName)
+
+	//if "/" == resourceName {
+	//		resourceName = "index.html"
+	//	}
+
+	//log.Printf("Loading resource '%s'", resourceName)
+
+	resourceName := "index.html"
+
+	ass, err := Asset(resourceName)
+
+	if err != nil {
+		logAndWriteResponse("Canot find index.html", err, writer)
+		return
+	}
+
+	//	if resourceName == "index.html" {
+	newString := ReplaceAll(string(ass), "{CAMERA}", camera)
+	ass = []byte(newString)
+	//	}
+
+	log.Printf("'%s' loaded", resourceName)
+	writer.Write(ass)
+}
+
+func streamWebResourceHandler(writer http.ResponseWriter, request *http.Request) {
+	resourceName := extractVariable("res", request)
+	//path := request.URL.Path
+
+	log.Printf("Loading resource '%s'", resourceName)
+
+	ass, err := Asset(resourceName)
+
+	if err != nil {
+		logAndWriteResponse("Canot find index.html", err, writer)
+		return
+	}
+
+	writer.Write(ass)
 }

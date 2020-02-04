@@ -1,4 +1,4 @@
-package camserver
+package webcamserver
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"github.com/jalasoft/go-v4l2"
 	"github.com/jalasoft/go-webcam"
 	"github.com/jalasoft/go-webcam-server/params"
@@ -24,8 +23,7 @@ type camera_full_info struct {
 
 func cameraHandler(writer http.ResponseWriter, request *http.Request) {
 
-	vars := mux.Vars(request)
-	name := vars["name"]
+	name := extractVariable("name", request)
 
 	file, ok := parameters.GetVideoFile(name)
 

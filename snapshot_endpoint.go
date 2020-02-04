@@ -1,4 +1,4 @@
-package camserver
+package webcamserver
 
 import (
 	"encoding/base64"
@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
 	"github.com/jalasoft/go-webcam"
 )
 
@@ -26,8 +25,7 @@ const (
 
 func snapshotHandler(writer http.ResponseWriter, request *http.Request) {
 
-	vars := mux.Vars(request)
-	name := vars["name"]
+	name := extractVariable("name", request)
 
 	format, ok := resolveOutputFormat(request)
 

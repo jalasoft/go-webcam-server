@@ -1,4 +1,4 @@
-package camserver
+package webcamserver
 
 import (
 	"encoding/json"
