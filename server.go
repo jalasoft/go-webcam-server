@@ -36,16 +36,14 @@ func StartServer() {
 
 	log.Printf("starting server on port %d", parameters.Port)
 
-	router := mux.NewRouter()
+	router := mux.NewRouter().PathPrefix("/camera").Subrouter()
 
-	//router.HandleFunc("/camera/stream/web/js/logic.js", streamWebResourceHandler)
-
-	router = router.PathPrefix("/camera").Subrouter()
 	router.HandleFunc("/", allCamerasHandler)
 	router.HandleFunc("/{name}", cameraHandler)
 	router.HandleFunc("/{name}/snapshot", snapshotHandler)
 	router.HandleFunc("/{name}/stream/web", streamWebIndexHandler)
-	router.HandleFunc("/stream/web/{res:[a-zA-Z0-9/\\.]+}", streamWebResourceHandler)
+	router.HandleFunc("/{name}/stream/web/{res:[a-zA-Z0-9/\\.]+}", streamWebResourceHandler)
+	router.HandleFunc("/{name}/stream", streamWebsocketHandler)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", parameters.Port),
