@@ -20,6 +20,10 @@ func (d *videofiles_parser) Set(str string) error {
 
 	index := strings.Index(str, "=")
 
+        if index == -1 {
+          return errors.New("Devices must be specified in form <device_name>=<device_file>")
+	}
+
 	name := str[:index]
 	file := str[index+1:]
 
