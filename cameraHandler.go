@@ -1,3 +1,6 @@
+
+// +build ignore
+
 package webcamserver
 
 import (
@@ -6,7 +9,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/jalasoft/go-v4l2"
 	"github.com/jalasoft/go-webcam"
 	"github.com/jalasoft/go-webcam-server/params"
 )
@@ -75,7 +77,7 @@ func readCameraFullInfo(file params.VideoFile) (error, camera_full_info) {
 	fullInfo.Info.Businfo = trim(cap.BusInfo())
 	fullInfo.Info.Version = cap.Version()
 
-	frames, err := device.FrameSizes().AllDiscrete(v4l2.V4L2_PIX_FMT_MJPEG)
+	frames, err := device.FrameSizes().AllDiscreteMJPEG()
 
 	if err != nil {
 		log.Printf("Cannot load frame sizes: %v", err)

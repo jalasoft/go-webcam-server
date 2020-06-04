@@ -1,14 +1,12 @@
 package params
 
 import (
-	"errors"
 	"flag"
-	"fmt"
-	"strings"
 )
 
 type Port uint
 
+/*
 type VideoFile struct {
 	Name string
 	Path string
@@ -33,16 +31,17 @@ func (d *videofiles_parser) Set(str string) error {
 func (d *videofiles_parser) String() string {
 	return fmt.Sprintf("%v", d.files)
 }
-
+*/
 //---------------------------------------------------------------------------
 //PARAMS
 //---------------------------------------------------------------------------
 
 type Params struct {
 	Port  Port
-	Files []VideoFile
+	//Files []VideoFile
 }
 
+/*
 func (p Params) GetVideoFile(name string) (VideoFile, bool) {
 
 	for _, f := range p.Files {
@@ -52,24 +51,24 @@ func (p Params) GetVideoFile(name string) (VideoFile, bool) {
 	}
 
 	return VideoFile{}, false
-}
+}*/
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 func ParseParams() (Params, error) {
 
-	var videofiles videofiles_parser
-	flag.Var(&videofiles, "device", "proste devajsi")
+//	var videofiles videofiles_parser
+//	flag.Var(&videofiles, "device", "proste devajsi")
 
 	var port uint
 	flag.UintVar(&port, "port", 8989, "proste port")
 
 	flag.Parse()
 
-	if len(videofiles.files) == 0 {
-		return Params{}, errors.New("No video device entered. Use --device parameters")
-	}
+//	if len(videofiles.files) == 0 {
+//		return Params{}, errors.New("No video device entered. Use --device parameters")
+//	}
 
-	return Params{Port(port), videofiles.files}, nil
+	return Params{Port(port)}, nil
 }
