@@ -10,6 +10,7 @@ import (
 	"time"
 	"path/filepath"
 	"github.com/gorilla/mux"
+	mux_context "github.com/gorilla/context"
 	"github.com/jalasoft/go-webcam"
 	"github.com/jalasoft/go-webcam-server/params"
 )
@@ -21,15 +22,11 @@ type camera_info struct {
 	Device string `json:device`
 }
 
-/*
-type cameraInfo struct {
-	Driver  string `json:"driver"`
-	Card    string `json:"card"`
-	Businfo string `json:"bus_info"`
-}*/
-
 var parameters params.Params
 var detectedDevicesInfo []camera_info
+
+type RequestContextKey string
+var cameraInfoContextKey RequestContextKey = "CAMERA_INFO_CONTEXT_KEY"
 
 func StartServer() {
 
@@ -45,10 +42,13 @@ func StartServer() {
 	
 	log.Printf("Detected devices: %v\n", detectedDevicesInfo)
 
-	router := mux.NewRouter().PathPrefix("/camera").Subrouter()
+	rootRouter := mux.NewRouter().PathPrefix("/camera").Subrouter()
+	rootRouter.HandleFunc("/", allDevicesHandler).Methods("GET")
 
-	router.HandleFunc("/", allDevicesHandler)
-	router.HandleFunc("/{name}", deviceInfoHandler)
+	cameraRouter := rootRouter.PathPrefix("/{camera}").Subrouter()
+	cameraRouter.Use(cameraInfoInContextMiddleware)
+	cameraRouter.HandleFunc("/", deviceInfoHandler).Methods("GET")
+	cameraRouter.HandleFunc("/cap", deviceCapabilityHandler).Methods("GET")
 
 	//router.HandleFunc("/{name}", cameraHandler)
 	//router.HandleFunc("/{name}/snapshot", snapshotHandler)
@@ -58,7 +58,7 @@ func StartServer() {
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", parameters.Port),
-		Handler: router,
+		Handler: rootRouter,
 	}
 
 	go func() {
@@ -119,16 +119,6 @@ func detectDevices() []camera_info {
 	return infos
 }
 
-func deviceInfoByName(name string) (camera_info, bool) {
-	for _, device := range detectedDevicesInfo {
-		if device.Name == name {
-			return device, true
-		}
-	}
-
-	return camera_info{}, false
-}
-
 func logAndWriteResponse(m string, err error, writer http.ResponseWriter) {
 	var message string
 	if err != nil {
@@ -141,8 +131,45 @@ func logAndWriteResponse(m string, err error, writer http.ResponseWriter) {
 	writer.Write([]byte(message))
 }
 
+
+
+func cameraInfoInContextMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		name, ok := extractVariable("camera", r)
+		
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("No camera specified."))
+			return
+		}
+		
+		info, ok := cameraInfoByName(name)
+
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(fmt.Sprintf("No camera '%s' found.", name)))
+			return
+		}
+
+		mux_context.Set(r, cameraInfoContextKey, info)
+
+        next.ServeHTTP(w, r)
+    })
+}
+
 func extractVariable(name string, request *http.Request) (string, bool) {
 	vars := mux.Vars(request)
 	value, ok :=  vars[name]
 	return value, ok
+}
+
+func cameraInfoByName(name string) (camera_info, bool) {
+	for _, device := range detectedDevicesInfo {
+		if device.Name == name {
+			return device, true
+		}
+	}
+
+	return camera_info{}, false
 }

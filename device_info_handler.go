@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/jalasoft/go-webcam"
+	"github.com/gorilla/context"
 )
 
 type camera_detail struct {
@@ -22,21 +23,8 @@ type camera_detail struct {
 func deviceInfoHandler(writer http.ResponseWriter, request *http.Request) {
 
 
-	deviceName, ok := extractVariable("name", request)
-
-	if !ok {
-		writer.Write([]byte("No device specified."))
-		return
-	}
-
-	deviceInfo, ok := deviceInfoByName(deviceName)
-
-	if !ok {
-		writer.Write([]byte(fmt.Sprintf("No device named '%s'", deviceName)))
-		return
-	}
-
-	cameraDetail, err := readCameraDetail(deviceInfo)
+	cameraInfo := context.Get(request, cameraInfoContextKey).(camera_info)
+	cameraDetail, err := readCameraDetail(cameraInfo)
 	
 	if err != nil {
 		writer.Write([]byte(fmt.Sprintf("An error occurred: %v", err)))
