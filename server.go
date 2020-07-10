@@ -42,19 +42,26 @@ func StartServer() {
 	
 	log.Printf("Detected devices: %v\n", detectedDevicesInfo)
 
-	rootRouter := mux.NewRouter().PathPrefix("/camera").Subrouter()
-	rootRouter.HandleFunc("/", allDevicesHandler).Methods("GET")
+	rootRouter := mux.NewRouter()
+	rootRouter.HandleFunc("/js/{resource:.+}", StaticContentHandler)
+	rootRouter.HandleFunc("/", WebIndexHandler)
+	
 
-	cameraRouter := rootRouter.PathPrefix("/{camera}").Subrouter()
+	
+	restRouter := rootRouter.PathPrefix("/camera").Subrouter()
+	restRouter.HandleFunc("/", allDevicesHandler).Methods("GET")
+	
+	cameraRouter := restRouter.PathPrefix("/{camera}").Subrouter()
 	cameraRouter.Use(cameraInfoInContextMiddleware)
 	cameraRouter.HandleFunc("/", deviceInfoHandler).Methods("GET")
 	cameraRouter.HandleFunc("/cap", deviceCapabilityHandler).Methods("GET")
+	cameraRouter.HandleFunc("/{name}/stream", streamWebsocketHandler).Methods("GET")
+	
 
 	//router.HandleFunc("/{name}", cameraHandler)
 	//router.HandleFunc("/{name}/snapshot", snapshotHandler)
 	//router.HandleFunc("/{name}/stream/web", streamWebIndexHandler)
 	//router.HandleFunc("/{name}/stream/web/{res:[a-zA-Z0-9/\\.]+}", streamWebResourceHandler)
-	//router.HandleFunc("/{name}/stream", streamWebsocketHandler)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", parameters.Port),

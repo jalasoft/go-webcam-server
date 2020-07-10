@@ -1,5 +1,4 @@
 
-// +build ignore
 
 package webcamserver
 
@@ -7,9 +6,9 @@ import (
 	"log"
 	"net/http"
 	"time"
-
+	"io/ioutil"
 	"github.com/gorilla/websocket"
-	"github.com/jalasoft/go-webcam"
+//	"github.com/jalasoft/go-webcam"
 )
 
 var upgrader websocket.Upgrader = websocket.Upgrader{
@@ -19,7 +18,14 @@ var upgrader websocket.Upgrader = websocket.Upgrader{
 }
 
 func streamWebsocketHandler(writer http.ResponseWriter, request *http.Request) {
-	name := extractVariable("name", request)
+	name, ok := extractVariable("name", request)
+
+	if !ok {
+		writer.WriteHeader(http.StatusNotFound)
+		writer.Write([]byte("Missing device name"))
+		return
+	}
+
 	log.Printf("Request for start streaming obtained for camera '%s'", name)
 
 	connectionHeader := request.Header["Connection"]
@@ -46,7 +52,27 @@ func streamWebsocketHandler(writer http.ResponseWriter, request *http.Request) {
 }
 
 func streamVideo(name string, conn *websocket.Conn) {
+	
+	for {
+		t,reader,err := conn.NextReader()
 
+		if err != nil {
+			log.Printf("An Error occurred: %v", err)
+			return
+		}
+
+		bytes,err := ioutil.ReadAll(reader)
+
+		if err != nil {
+			log.Printf("Cannot read all bytes of a message for treaming device", name)
+			return
+		}
+
+		log.Printf("Obdrzel jsem typ: %d", t)
+		log.Printf("Jako text: %v", string(bytes))
+	}
+
+	/*
 	file, ok := parameters.GetVideoFile(name)
 
 	if !ok {
@@ -69,7 +95,9 @@ func streamVideo(name string, conn *websocket.Conn) {
 	}()
 
 	log.Printf("Camera %s opened.", file)
+	*/
 
+	/*
 	pulseChannel := make(chan bool)
 	closeChannel := make(chan bool)
 	closeChannel2 := make(chan bool)
@@ -79,14 +107,14 @@ func streamVideo(name string, conn *websocket.Conn) {
 	go awaitClose(conn, closeChannel)
 
 	go driver(pulseChannel, closeChannel, closeChannel2)
-
+-*/
 	//w, err := conn.NextWriter(websocket.TextMessage)
 
 	//if err != nil {
 	//	log.Fatalf("An error occurred during getting writer: %v", err)
 	//		return
 	//}
-
+/*
 	for {
 
 		select {
@@ -105,6 +133,7 @@ func streamVideo(name string, conn *websocket.Conn) {
 			}
 		}
 	}
+*/
 }
 
 func awaitClose(conn *websocket.Conn, closeChannel chan bool) {
