@@ -1,17 +1,15 @@
 
-// +build ignore
 
 package webcamserver
 
 import (
 	"log"
 	"net/http"
-	. "strings"
+	"fmt"
+	//	. "strings"
 )
 
-func streamWebIndexHandler(writer http.ResponseWriter, request *http.Request) {
-
-	camera := extractVariable("name", request)
+func WebIndexHandler(writer http.ResponseWriter, request *http.Request) {
 
 	resourceName := "index.html"
 
@@ -22,13 +20,27 @@ func streamWebIndexHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	newString := ReplaceAll(string(ass), "{CAMERA}", camera)
-	ass = []byte(newString)
-
 	log.Printf("'%s' loaded", resourceName)
 	writer.Write(ass)
 }
 
+func StaticContentHandler(writer http.ResponseWriter, request *http.Request) {
+	
+	path := request.URL.Path[1:]
+
+	log.Printf("Loading resource: %s", path)
+
+	ass, err := Asset(path)
+
+	if err != nil {
+		logAndWriteResponse(fmt.Sprintf("Cannot find %v", path), err, writer)
+		return
+	}
+
+	writer.Write(ass)
+}
+
+/*
 func streamWebResourceHandler(writer http.ResponseWriter, request *http.Request) {
 	resourceName := extractVariable("res", request)
 
@@ -42,4 +54,4 @@ func streamWebResourceHandler(writer http.ResponseWriter, request *http.Request)
 	}
 
 	writer.Write(ass)
-}
+}*/

@@ -1,13 +1,13 @@
-
-// +build ignore
-
 package webcamserver
 
 import (
+	"io/ioutil"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
+	"github.com/gorilla/context"
 	"github.com/gorilla/websocket"
 	"github.com/jalasoft/go-webcam"
 )
@@ -19,13 +19,13 @@ var upgrader websocket.Upgrader = websocket.Upgrader{
 }
 
 func streamWebsocketHandler(writer http.ResponseWriter, request *http.Request) {
-	name := extractVariable("name", request)
-	log.Printf("Request for start streaming obtained for camera '%s'", name)
 
-	connectionHeader := request.Header["Connection"]
-	upgrade := request.Header["Upgrade"]
+	cameraInfo := context.Get(request, cameraInfoContextKey).(camera_info)
 
-	log.Printf("header: %s %s", connectionHeader, upgrade)
+	log.Printf("Request for start streaming obtained for camera '%s'", cameraInfo.Name)
+
+	//connectionHeader := request.Header["Connection"]
+	//upgrade := request.Header["Upgrade"]
 
 	conn, err := upgrader.Upgrade(writer, request, nil)
 
@@ -34,59 +34,114 @@ func streamWebsocketHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	log.Printf("Connection established")
+
 	defer func() {
 		if err := conn.Close(); err != nil {
 			log.Printf("Error occurred during closing websocket: %v", err)
 		}
 	}()
 
-	log.Printf("Connection established")
-
-	streamVideo(name, conn)
+	streamVideo(cameraInfo, conn)
 }
 
-func streamVideo(name string, conn *websocket.Conn) {
+func streamVideo(camera camera_info, conn *websocket.Conn) {
 
-	file, ok := parameters.GetVideoFile(name)
-
-	if !ok {
-		log.Printf("There is no device '%s'", name)
-		return
-	}
-
-	device, err := webcam.OpenVideoDevice(file.Path)
+	device, err := webcam.OpenVideoDevice(camera.Device)
 
 	if err != nil {
-		log.Printf("An error occurred during opening device %s: %v", file, err)
+		log.Printf("An error occurred during opening device %s: %v", camera.Name, err)
 		return
 	}
 
 	defer func() {
-		log.Printf("Closing camera %s", file)
+		log.Printf("Closing camera %s", camera.Name)
 		if err := device.Close(); err != nil {
 			log.Fatalf("An error occurred during closing device: %v", err)
 		}
 	}()
 
-	log.Printf("Camera %s opened.", file)
+	ticks := make(chan bool)
+	snapshots := make(chan webcam.Snapshot)
 
-	pulseChannel := make(chan bool)
-	closeChannel := make(chan bool)
-	closeChannel2 := make(chan bool)
-	snapsChannel := make(chan webcam.Snapshot)
+	go device.Stream(&webcam.DiscreteFrameSize{640, 480}, ticks, snapshots)
 
-	go device.Stream(&webcam.DiscreteFrameSize{640, 480}, pulseChannel, snapsChannel)
-	go awaitClose(conn, closeChannel)
+	//go simulateCamera(ticks, snapshots)
 
-	go driver(pulseChannel, closeChannel, closeChannel2)
+	var w sync.WaitGroup
+	w.Add(1)
 
-	//w, err := conn.NextWriter(websocket.TextMessage)
+	go receiveCommands(ticks, conn)
+	go processSnapshots(snapshots, conn, &w)
 
-	//if err != nil {
-	//	log.Fatalf("An error occurred during getting writer: %v", err)
-	//		return
-	//}
+	w.Wait()
+}
 
+func simulateCamera(ticks chan bool, snapshots chan string) {
+
+	for range ticks {
+		log.Println("Prisel tick")
+
+		time.Sleep(500 * time.Millisecond)
+		snapshots <- "ahojky"
+	}
+}
+
+func receiveCommands(ticks chan bool, conn *websocket.Conn) {
+
+	for {
+		_, reader, err := conn.NextReader()
+
+		if err != nil {
+			log.Printf("Cannot get socket reader: %v", err)
+			close(ticks)
+			return
+		}
+
+		bytes, err := ioutil.ReadAll(reader)
+
+		if err != nil {
+			log.Printf("Cannot read obtained bytes: %v", err)
+			close(ticks)
+			return
+		}
+
+		command := string(bytes)
+
+		switch command {
+
+		case "TICK":
+			log.Printf("Command TICK obtained")
+			ticks <- true
+
+		case "CLOSE":
+			log.Printf("Command CLOSE obtained")
+
+		default:
+			log.Printf("Unknown command %s obtained", command)
+		}
+	}
+}
+
+func processSnapshots(snapshots chan webcam.Snapshot, conn *websocket.Conn, w *sync.WaitGroup) {
+
+	for snapshot := range snapshots {
+		//log.Printf("Sending snapshot data: %d", snapshot.Length())
+		log.Println("Sending snasphot data")
+		conn.WriteMessage(websocket.BinaryMessage, snapshot.Data())
+	}
+
+	log.Printf("Snapshot stream finished.")
+	w.Done()
+}
+
+//w, err := conn.NextWriter(websocket.TextMessage)
+
+//if err != nil {
+//	log.Fatalf("An error occurred during getting writer: %v", err)
+//		return
+//}
+/*
 	for {
 
 		select {
@@ -105,8 +160,8 @@ func streamVideo(name string, conn *websocket.Conn) {
 			}
 		}
 	}
-}
-
+*/
+/*
 func awaitClose(conn *websocket.Conn, closeChannel chan bool) {
 	for {
 
@@ -152,4 +207,4 @@ func driver(pulseChannel chan bool, closeChannel chan bool, closeChannel2 chan b
 
 		time.Sleep(1 * time.Second)
 	}
-}
+}*/

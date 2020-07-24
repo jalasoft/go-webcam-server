@@ -7,10 +7,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"time"
 	"path/filepath"
-	"github.com/gorilla/mux"
+	"time"
+
 	mux_context "github.com/gorilla/context"
+	"github.com/gorilla/mux"
 	"github.com/jalasoft/go-webcam"
 	"github.com/jalasoft/go-webcam-server/params"
 )
@@ -18,7 +19,7 @@ import (
 //go:generate go-bindata -pkg webcamserver -prefix assets assets/...
 
 type camera_info struct {
-	Name string `json:"name"`
+	Name   string `json:"name"`
 	Device string `json:device`
 }
 
@@ -26,35 +27,40 @@ var parameters params.Params
 var detectedDevicesInfo []camera_info
 
 type RequestContextKey string
+
 var cameraInfoContextKey RequestContextKey = "CAMERA_INFO_CONTEXT_KEY"
 
 func StartServer() {
 
 	parameters = getParameters()
 	log.Printf("starting server on port %d", parameters.Port)
-	
+
 	detectedDevicesInfo = detectDevices()
 
 	if len(detectedDevicesInfo) == 0 {
 		log.Printf("No device detected. Exiting.")
 		os.Exit(3)
 	}
-	
+
 	log.Printf("Detected devices: %v\n", detectedDevicesInfo)
 
-	rootRouter := mux.NewRouter().PathPrefix("/camera").Subrouter()
-	rootRouter.HandleFunc("/", allDevicesHandler).Methods("GET")
+	rootRouter := mux.NewRouter()
+	rootRouter.HandleFunc("/js/{resource:.+}", StaticContentHandler)
+	rootRouter.HandleFunc("/", WebIndexHandler)
 
-	cameraRouter := rootRouter.PathPrefix("/{camera}").Subrouter()
+	restRouter := rootRouter.PathPrefix("/camera").Subrouter()
+	restRouter.HandleFunc("/", allDevicesHandler).Methods("GET")
+
+	cameraRouter := restRouter.PathPrefix("/{camera}").Subrouter()
 	cameraRouter.Use(cameraInfoInContextMiddleware)
 	cameraRouter.HandleFunc("/", deviceInfoHandler).Methods("GET")
 	cameraRouter.HandleFunc("/cap", deviceCapabilityHandler).Methods("GET")
+	cameraRouter.HandleFunc("/stream", streamWebsocketHandler)
 
 	//router.HandleFunc("/{name}", cameraHandler)
 	//router.HandleFunc("/{name}/snapshot", snapshotHandler)
 	//router.HandleFunc("/{name}/stream/web", streamWebIndexHandler)
 	//router.HandleFunc("/{name}/stream/web/{res:[a-zA-Z0-9/\\.]+}", streamWebResourceHandler)
-	//router.HandleFunc("/{name}/stream", streamWebsocketHandler)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", parameters.Port),
@@ -111,7 +117,7 @@ func detectDevices() []camera_info {
 
 	for _, deviceFile := range devices {
 		infos = append(infos, camera_info{
-			Name: filepath.Base(deviceFile),
+			Name:   filepath.Base(deviceFile),
 			Device: deviceFile,
 		})
 	}
@@ -131,19 +137,17 @@ func logAndWriteResponse(m string, err error, writer http.ResponseWriter) {
 	writer.Write([]byte(message))
 }
 
-
-
 func cameraInfoInContextMiddleware(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		name, ok := extractVariable("camera", r)
-		
+
 		if !ok {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("No camera specified."))
 			return
 		}
-		
+
 		info, ok := cameraInfoByName(name)
 
 		if !ok {
@@ -154,13 +158,13 @@ func cameraInfoInContextMiddleware(next http.Handler) http.Handler {
 
 		mux_context.Set(r, cameraInfoContextKey, info)
 
-        next.ServeHTTP(w, r)
-    })
+		next.ServeHTTP(w, r)
+	})
 }
 
 func extractVariable(name string, request *http.Request) (string, bool) {
 	vars := mux.Vars(request)
-	value, ok :=  vars[name]
+	value, ok := vars[name]
 	return value, ok
 }
 
