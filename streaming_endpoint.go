@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"sync"
 	"time"
-
 	"github.com/gorilla/context"
+	"io/ioutil"
 	"github.com/gorilla/websocket"
-	"github.com/jalasoft/go-webcam"
+//	"github.com/jalasoft/go-webcam"
 )
 
 var upgrader websocket.Upgrader = websocket.Upgrader{
@@ -46,6 +46,31 @@ func streamWebsocketHandler(writer http.ResponseWriter, request *http.Request) {
 }
 
 func streamVideo(camera camera_info, conn *websocket.Conn) {
+	for {
+		t,reader,err := conn.NextReader()
+
+		if err != nil {
+			log.Printf("An Error occurred: %v", err)
+			return
+		}
+
+		bytes,err := ioutil.ReadAll(reader)
+
+		if err != nil {
+			log.Printf("Cannot read all bytes of a message for treaming device", name)
+			return
+		}
+
+		log.Printf("Obdrzel jsem typ: %d", t)
+		log.Printf("Jako text: %v", string(bytes))
+	}
+
+	file, ok := parameters.GetVideoFile(name)
+
+	if !ok {
+		log.Printf("There is no device '%s'", name)
+		return
+	}
 
 	device, err := webcam.OpenVideoDevice(camera.Device)
 
@@ -67,10 +92,6 @@ func streamVideo(camera camera_info, conn *websocket.Conn) {
 	go device.Stream(&webcam.DiscreteFrameSize{640, 480}, ticks, snapshots)
 
 	//go simulateCamera(ticks, snapshots)
-
-	var w sync.WaitGroup
-	w.Add(1)
-
 	go receiveCommands(ticks, conn)
 	go processSnapshots(snapshots, conn, &w)
 
@@ -88,7 +109,6 @@ func simulateCamera(ticks chan bool, snapshots chan string) {
 }
 
 func receiveCommands(ticks chan bool, conn *websocket.Conn) {
-
 	for {
 		_, reader, err := conn.NextReader()
 
@@ -162,6 +182,8 @@ func processSnapshots(snapshots chan webcam.Snapshot, conn *websocket.Conn, w *s
 	}
 */
 /*
+}
+
 func awaitClose(conn *websocket.Conn, closeChannel chan bool) {
 	for {
 

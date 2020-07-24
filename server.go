@@ -47,7 +47,6 @@ func StartServer() {
 	rootRouter := mux.NewRouter()
 	rootRouter.HandleFunc("/js/{resource:.+}", StaticContentHandler)
 	rootRouter.HandleFunc("/", WebIndexHandler)
-
 	restRouter := rootRouter.PathPrefix("/camera").Subrouter()
 	restRouter.HandleFunc("/", allDevicesHandler).Methods("GET")
 
