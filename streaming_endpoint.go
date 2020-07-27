@@ -1,15 +1,17 @@
 package webcamserver
 
 import (
+	"encoding/base64"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"sync"
 	"time"
+
 	"github.com/gorilla/context"
-	"io/ioutil"
 	"github.com/gorilla/websocket"
-//	"github.com/jalasoft/go-webcam"
+	"github.com/jalasoft/go-webcam"
+	//	"github.com/jalasoft/go-webcam"
 )
 
 var upgrader websocket.Upgrader = websocket.Upgrader{
@@ -23,9 +25,6 @@ func streamWebsocketHandler(writer http.ResponseWriter, request *http.Request) {
 	cameraInfo := context.Get(request, cameraInfoContextKey).(camera_info)
 
 	log.Printf("Request for start streaming obtained for camera '%s'", cameraInfo.Name)
-
-	//connectionHeader := request.Header["Connection"]
-	//upgrade := request.Header["Upgrade"]
 
 	conn, err := upgrader.Upgrade(writer, request, nil)
 
@@ -43,34 +42,11 @@ func streamWebsocketHandler(writer http.ResponseWriter, request *http.Request) {
 	}()
 
 	streamVideo(cameraInfo, conn)
+
+	log.Printf("Closing connection")
 }
 
 func streamVideo(camera camera_info, conn *websocket.Conn) {
-	for {
-		t,reader,err := conn.NextReader()
-
-		if err != nil {
-			log.Printf("An Error occurred: %v", err)
-			return
-		}
-
-		bytes,err := ioutil.ReadAll(reader)
-
-		if err != nil {
-			log.Printf("Cannot read all bytes of a message for treaming device", name)
-			return
-		}
-
-		log.Printf("Obdrzel jsem typ: %d", t)
-		log.Printf("Jako text: %v", string(bytes))
-	}
-
-	file, ok := parameters.GetVideoFile(name)
-
-	if !ok {
-		log.Printf("There is no device '%s'", name)
-		return
-	}
 
 	device, err := webcam.OpenVideoDevice(camera.Device)
 
@@ -88,6 +64,9 @@ func streamVideo(camera camera_info, conn *websocket.Conn) {
 
 	ticks := make(chan bool)
 	snapshots := make(chan webcam.Snapshot)
+
+	var w sync.WaitGroup
+	w.Add(1)
 
 	go device.Stream(&webcam.DiscreteFrameSize{640, 480}, ticks, snapshots)
 
@@ -136,6 +115,8 @@ func receiveCommands(ticks chan bool, conn *websocket.Conn) {
 
 		case "CLOSE":
 			log.Printf("Command CLOSE obtained")
+			close(ticks)
+			return
 
 		default:
 			log.Printf("Unknown command %s obtained", command)
@@ -146,87 +127,12 @@ func receiveCommands(ticks chan bool, conn *websocket.Conn) {
 func processSnapshots(snapshots chan webcam.Snapshot, conn *websocket.Conn, w *sync.WaitGroup) {
 
 	for snapshot := range snapshots {
-		//log.Printf("Sending snapshot data: %d", snapshot.Length())
+		b64 := base64.StdEncoding.EncodeToString(snapshot.Data())
+
 		log.Println("Sending snasphot data")
-		conn.WriteMessage(websocket.BinaryMessage, snapshot.Data())
+		conn.WriteMessage(websocket.TextMessage, []byte(b64))
 	}
 
 	log.Printf("Snapshot stream finished.")
 	w.Done()
 }
-
-//w, err := conn.NextWriter(websocket.TextMessage)
-
-//if err != nil {
-//	log.Fatalf("An error occurred during getting writer: %v", err)
-//		return
-//}
-/*
-	for {
-
-		select {
-		case <-closeChannel2:
-			log.Printf("Socket closed.")
-			return
-
-		case snap := <-snapsChannel:
-			log.Printf("Snapshot snapped.")
-			//encoder := base64.NewEncoder(base64.StdEncoding, w)
-			//encoder.Write(snap.Data())
-			//encoder.Close()
-			if err := conn.WriteMessage(websocket.BinaryMessage, snap.Data()); err != nil {
-				log.Printf("An error occurred during writing snapshot: %v", err)
-				return
-			}
-		}
-	}
-*/
-/*
-}
-
-func awaitClose(conn *websocket.Conn, closeChannel chan bool) {
-	for {
-
-		t, m, err := conn.ReadMessage()
-
-		if err != nil {
-			closeChannel <- true
-			return
-		}
-
-		log.Printf("A message of type %v obtained: %v", t, m)
-	}
-}
-
-func driver(pulseChannel chan bool, closeChannel chan bool, closeChannel2 chan bool) {
-	for {
-
-		select {
-
-		case <-closeChannel:
-			log.Printf("Client closed connection. Closignn streaming.")
-			closeChannel2 <- true
-			close(closeChannel)
-			close(closeChannel2)
-			close(pulseChannel)
-			return
-
-		default:
-			break
-		}
-
-		log.Printf("Tick")
-		pulseChannel <- true
-		ok := <-pulseChannel
-
-		if !ok {
-			log.Printf("Something went wrong with streaming snapshots.")
-			closeChannel2 <- true
-			close(pulseChannel)
-			close(closeChannel)
-			close(closeChannel2)
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-}*/
