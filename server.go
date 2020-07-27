@@ -54,7 +54,8 @@ func StartServer() {
 	cameraRouter.Use(cameraInfoInContextMiddleware)
 	cameraRouter.HandleFunc("/", deviceInfoHandler).Methods("GET")
 	cameraRouter.HandleFunc("/cap", deviceCapabilityHandler).Methods("GET")
-	cameraRouter.HandleFunc("/stream", streamWebsocketHandler)
+	cameraRouter.HandleFunc("/stream", streamWebsocketHandler).Methods("GET")
+	cameraRouter.HandleFunc("/stream2", streamHttpHandler).Methods("GET")
 
 	//router.HandleFunc("/{name}", cameraHandler)
 	//router.HandleFunc("/{name}/snapshot", snapshotHandler)
