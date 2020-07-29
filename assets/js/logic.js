@@ -12,6 +12,8 @@ document.querySelector("#stop").addEventListener("click", () => {
     socket.close()
 });
 
+const cam1img = document.querySelector("#cam1img")
+
 socket.addEventListener('open', event => {
     console.log("Connection established")
     socket.send("TICK")
@@ -20,6 +22,10 @@ socket.addEventListener('close', event => console.log("Connection closed"))
 
 socket.addEventListener('message', event => {
     console.log("Frame received")
+    console.log("Message received")
+
+    cam1img.src = `data:image/jpeg;base64,${event.data}`
+
     socket.send("TICK")
     setTimeout(() => showFrame(event.data), 0);
 })
@@ -48,4 +54,3 @@ function showFrame(data) {
     //console.log('Base64 String without Tags- ',  
    //base64String.substr(base64String.indexOf(', ') + 1)); 
 //}
-
