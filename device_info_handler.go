@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jalasoft/go-webcam"
 	"github.com/gorilla/context"
+	"github.com/jalasoft/go-webcam"
 )
 
 type camera_detail struct {
@@ -22,10 +22,9 @@ type camera_detail struct {
 
 func deviceInfoHandler(writer http.ResponseWriter, request *http.Request) {
 
-
 	cameraInfo := context.Get(request, cameraInfoContextKey).(camera_info)
 	cameraDetail, err := readCameraDetail(cameraInfo)
-	
+
 	if err != nil {
 		writer.Write([]byte(fmt.Sprintf("An error occurred: %v", err)))
 		return
@@ -59,7 +58,7 @@ func readCameraDetail(camInfo camera_info) (camera_detail, error) {
 		return info, err
 	}
 
-	cap := device.Capability()
+	cap := device.Capabilities()
 
 	info.Driver = trim(cap.Driver())
 	info.Card = trim(cap.Card())

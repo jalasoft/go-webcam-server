@@ -1,17 +1,17 @@
 package webcamserver
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+
 	"github.com/gorilla/context"
-	"encoding/json"
 	"github.com/jalasoft/go-webcam"
-	"github.com/jalasoft/go-webcam/v4l2"
 )
 
 type camera_capability struct {
-	Camera string `json:"camera"`
+	Camera       string   `json:"camera"`
 	Capabilities []string `json:"capabilities"`
 }
 
@@ -28,7 +28,7 @@ func deviceCapabilityHandler(writer http.ResponseWriter, request *http.Request) 
 	}
 
 	cap := camera_capability{
-		Camera: cameraInfo.Name,
+		Camera:       cameraInfo.Name,
 		Capabilities: caps,
 	}
 
@@ -57,16 +57,13 @@ func readCapabilities(camera camera_info) ([]string, error) {
 		return nil, err
 	}
 
-	cap := device.Capability()
+	capStrings := []string{}
 
-	supportedCaps := make([]string, 0)
+	capabilities := device.Capabilities()
 
-	for name, value := range v4l2.CAP_MAPPING {
-		if cap.HasCapability(value) {
-			supportedCaps = append(supportedCaps, name)
-		}
+	for _, capability := range capabilities.AllCapabilities() {
+		capStrings = append(capStrings, capability.Name)
 	}
 
-	return supportedCaps, nil
+	return capStrings, nil
 }
-
