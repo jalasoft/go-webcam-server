@@ -34,6 +34,7 @@ func deviceInfoHandler(writer http.ResponseWriter, request *http.Request) {
 
 	if err != nil {
 		writer.Write([]byte(fmt.Sprintf("%v", err)))
+		return
 	}
 
 	writer.Write(b)

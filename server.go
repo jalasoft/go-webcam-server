@@ -50,6 +50,10 @@ func StartServer() {
 	restRouter := rootRouter.PathPrefix("/camera").Subrouter()
 	restRouter.HandleFunc("/", allDevicesHandler).Methods("GET")
 
+	constantsRouter := rootRouter.PathPrefix("/v4l2").Subrouter()
+	constantsRouter.HandleFunc("/cap", AllCapabilitiesHandler).Methods("GET")
+	constantsRouter.HandleFunc("/pixfmt", AllPixelFormatsHandler).Methods("GET")
+
 	cameraRouter := restRouter.PathPrefix("/{camera}").Subrouter()
 	cameraRouter.Use(cameraInfoInContextMiddleware)
 	cameraRouter.HandleFunc("/", deviceInfoHandler).Methods("GET")
